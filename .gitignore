@@ -1,0 +1,27 @@
+# Backend
+backend/node_modules/
+backend/.env
+backend/.env.*
+
+# Admin dashboard
+admin-dashboard/node_modules/
+admin-dashboard/.env
+admin-dashboard/.env.*
+
+# Flutter
+mobile-app/.dart_tool/
+mobile-app/build/
+mobile-app/.flutter-plugins
+mobile-app/.flutter-plugins-dependencies
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
