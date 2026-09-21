@@ -1,177 +1,234 @@
-# AR Furniture Studio — Full Project
+# AR Furniture Studio — Backend API
 
-A complete AR furniture shopping platform: a Flutter mobile app with
-AR placement, a Node.js/Express/MongoDB backend, and a React admin
-dashboard.
+Node.js / Express / MongoDB Atlas REST API powering the AR Furniture Studio
+mobile app (Flutter) and the React admin dashboard.
+
+## Tech Stack
+
+- **Runtime:** Node.js 18+, Express.js
+- **Database:** MongoDB Atlas (Mongoose ODM)
+- **Auth:** JWT (access + refresh tokens), bcrypt password hashing
+- **Media:** Cloudinary (images + `.glb`/`.usdz` 3D models), Multer
+- **Email:** Nodemailer (OTP delivery)
+- **AI:** Gemini API (optional recommendation module)
+- **Security:** Helmet, CORS, express-rate-limit, mongo-sanitize, xss-clean
+- **Testing:** Jest + Supertest + mongodb-memory-server
+
+## Project Structure
 
 ```
-AR-Furniture-Studio/
-├── backend/            # Node.js + Express + MongoDB Atlas REST API
-├── admin-dashboard/    # React + Vite + MUI admin panel
-└── mobile-app/         # Flutter app (iOS + Android, AR via ARCore/ARKit)
+ar-furniture-studio-backend/
+├── config/
+│   ├── db.js                 # MongoDB Atlas connection
+│   └── cloudinary.js         # Cloudinary + multer storage engines
+├── controllers/
+│   ├── authController.js
+│   ├── furnitureController.js
+│   ├── categoryController.js
+│   ├── favoriteController.js
+│   ├── reviewController.js
+│   ├── savedDesignController.js
+│   ├── notificationController.js
+│   ├── adminController.js
+│   └── aiController.js
+├── middleware/
+│   ├── authMiddleware.js      # protect / adminOnly / optionalAuth
+│   ├── errorMiddleware.js     # centralized error handler
+│   ├── validateMiddleware.js  # express-validator wrapper
+│   └── uploadMiddleware.js    # multer + Cloudinary upload configs
+├── models/
+│   ├── User.js
+│   ├── Furniture.js
+│   ├── Category.js
+│   ├── Favorite.js
+│   ├── Review.js
+│   ├── SavedDesign.js
+│   ├── Notification.js
+│   └── RecentlyViewed.js
+├── routes/
+│   ├── authRoutes.js
+│   ├── furnitureRoutes.js
+│   ├── categoryRoutes.js
+│   ├── favoriteRoutes.js
+│   ├── reviewRoutes.js
+│   ├── savedDesignRoutes.js
+│   ├── notificationRoutes.js
+│   ├── adminRoutes.js
+│   └── aiRoutes.js
+├── utils/
+│   ├── generateToken.js
+│   ├── otpGenerator.js
+│   ├── sendEmail.js
+│   ├── apiResponse.js
+│   └── seedData.js
+├── tests/
+│   └── auth.test.js
+├── uploads/                   # local scratch dir (Cloudinary is source of truth)
+├── app.js                     # Express app + middleware wiring
+├── server.js                  # entry point
+├── .env.example
+└── package.json
 ```
 
-Each folder also has its own detailed README (tech stack, project
-structure, full API docs for the backend, etc). This file covers how
-to get all three running together, end to end.
+## Installation Guide
 
----
+### Prerequisites
+- Node.js ≥ 18
+- A MongoDB Atlas cluster (or local MongoDB for dev)
+- A Cloudinary account (free tier is fine)
+- An SMTP account for sending OTP emails (Gmail App Password works)
+- (Optional) A Gemini API key for AI recommendations
 
-## 0. Prerequisites
-
-Install these once:
-
-| Tool | Used for | Version |
-|---|---|---|
-| [Node.js](https://nodejs.org) | backend + admin dashboard | ≥ 18 |
-| [npm](https://npmjs.com) | package manager | comes with Node |
-| [Flutter SDK](https://flutter.dev) | mobile app | latest stable |
-| A MongoDB Atlas cluster (or local MongoDB) | database | — |
-| A [Cloudinary](https://cloudinary.com) account (free tier) | image/3D model storage | — |
-| An SMTP account (e.g. Gmail App Password) | OTP emails | — |
-| Xcode (macOS) and/or Android Studio | building the mobile app | — |
-| A physical phone | testing AR (ARCore/ARKit rarely work in simulators) | — |
-
----
-
-## 1. Run the backend first
+### Steps
 
 ```bash
-cd backend
+# 1. Install dependencies
+cd ar-furniture-studio-backend
 npm install
+
+# 2. Configure environment variables
 cp .env.example .env
-```
+# then edit .env with your MongoDB URI, Cloudinary keys, SMTP creds, JWT secrets
 
-Open `.env` and fill in:
-- `MONGO_URI` — your MongoDB Atlas connection string
-- `JWT_SECRET` / `JWT_REFRESH_SECRET` — any long random strings
-- `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET`
-- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `EMAIL_FROM`
-- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — credentials for the seeded admin account
-- (optional) `GEMINI_API_KEY` for AI recommendations
-
-Then seed the database with a demo admin + sample furniture catalog, and
-start the server:
-
-```bash
+# 3. Seed the database with a demo admin + sample catalog
 npm run seed
+
+# 4. Start in development (auto-reload)
 npm run dev
+
+# Or start in production mode
+npm start
 ```
 
-The API is now running at `http://localhost:5000` — check
-`http://localhost:5000/health` in a browser to confirm.
+The API will be available at `http://localhost:5000`. Health check:
+`GET http://localhost:5000/health`.
 
-Run the backend's test suite any time with `npm test` (uses an in-memory
-MongoDB, no live database needed).
-
----
-
-## 2. Run the admin dashboard
+### Running tests
 
 ```bash
-cd admin-dashboard
-npm install
-cp .env.example .env
+npm test
 ```
 
-Set `VITE_API_BASE_URL=http://localhost:5000/api` in `.env` (adjust if
-your backend runs elsewhere), then:
+Tests spin up an in-memory MongoDB instance (`mongodb-memory-server`), so no
+real database connection is required.
 
-```bash
-npm run dev
+## Environment Variables
+
+See `.env.example` for the full list. Key variables:
+
+| Variable | Purpose |
+|---|---|
+| `MONGO_URI` | MongoDB Atlas connection string |
+| `JWT_SECRET` / `JWT_EXPIRES_IN` | Access token signing |
+| `JWT_REFRESH_SECRET` / `JWT_REFRESH_EXPIRES_IN` | Refresh token signing |
+| `CLOUDINARY_*` | Media storage for images and 3D models |
+| `SMTP_*`, `EMAIL_FROM` | OTP / transactional email delivery |
+| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Used by `npm run seed` |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | Optional AI recommendation module |
+
+## API Documentation
+
+All responses follow this envelope:
+
+```json
+{ "success": true, "message": "...", "data": { }, "meta": { } }
 ```
 
-Open `http://localhost:5173` and log in with the `ADMIN_EMAIL` /
-`ADMIN_PASSWORD` you set in the backend's `.env` (created by `npm run seed`).
-From here you can add furniture (with images and `.glb`/`.usdz` 3D
-models), manage categories, users, reviews, and broadcast notifications.
+Errors:
 
-**Tip:** add a few furniture items with 3D models here before testing
-the mobile app's AR view — the app has nothing to place in AR until
-the catalog has at least one item with a `.glb`/`.usdz` model attached.
-
----
-
-## 3. Run the mobile app
-
-```bash
-cd mobile-app
-flutter pub get
-cp .env.example .env
+```json
+{ "success": false, "message": "...", "errors": ["..."] }
 ```
 
-Edit `.env`:
-- Android emulator → `API_BASE_URL=http://10.0.2.2:5000/api`
-- Physical device → `API_BASE_URL=http://<your-computer's-LAN-IP>:5000/api`
-  (phone and computer must be on the same network)
-- iOS simulator → `API_BASE_URL=http://localhost:5000/api`
+### Auth — `/api/auth`
 
-Then run:
+| Method | Route | Access | Description |
+|---|---|---|---|
+| POST | `/register` | Public | Create account, sends email OTP |
+| POST | `/verify-otp` | Public | Verify email OR confirm password-reset OTP |
+| POST | `/login` | Public | Returns `accessToken` + `refreshToken` |
+| POST | `/forgot-password` | Public | Sends password-reset OTP |
+| POST | `/reset-password` | Public | Consumes reset token from `verify-otp` |
+| POST | `/refresh-token` | Public | Exchanges refresh token for new access token |
+| GET | `/profile` | Private | Get current user |
+| PUT | `/profile` | Private | Update name/phone/preferences/avatar |
+| PUT | `/change-password` | Private | Change password while logged in |
+| POST | `/logout` | Private | Removes device FCM token |
 
-```bash
-flutter run
-```
+### Furniture — `/api/furniture`
 
-### AR-specific setup
+| Method | Route | Access | Description |
+|---|---|---|---|
+| GET | `/` | Public | List + search + filter + paginate |
+| GET | `/recently-viewed` | Private | Current user's recently viewed items |
+| GET | `/:id` | Public | Single item detail (tracks view) |
+| POST | `/` | Admin | Create item (multipart: `images[]`) |
+| PUT | `/:id` | Admin | Update item |
+| PUT | `/:id/model` | Admin | Upload/replace `.glb`/`.usdz` AR model |
+| DELETE | `/:id` | Admin | Delete item + Cloudinary assets |
+| DELETE | `/:id/images/:publicId` | Admin | Remove one image |
+| GET | `/:furnitureId/reviews` | Public | List reviews |
+| POST | `/:furnitureId/reviews` | Private | Submit a review |
 
-- **Android:** needs Google Play Services for AR (ARCore) installed on
-  the test device, `minSdkVersion 24+`, and the ARCore `<meta-data>` +
-  camera permission entries in `android/app/src/main/AndroidManifest.xml`.
-- **iOS:** needs iOS 12+ on an ARKit-capable device and the
-  `NSCameraUsageDescription` key in `ios/Runner/Info.plist`.
-- AR does **not** work reliably in most simulators/emulators — test on
-  a real device.
+Query params on `GET /`: `q, category, minPrice, maxPrice, colors, materials, roomType, trending, featured, sort, page, limit`.
 
-### Push notifications (optional)
+### Categories — `/api/categories`
 
-Add your own `google-services.json` (Android) and
-`GoogleService-Info.plist` (iOS) from the Firebase console. The app
-initializes Firebase defensively and simply skips push setup if these
-files aren't present, so you can develop everything else without them.
+Standard CRUD; `GET` is public, mutations are Admin-only.
 
----
+### Favorites — `/api/favorites`
+`GET /`, `POST /` (`{ furnitureId }`), `DELETE /:furnitureId` — all Private.
 
-## 4. Typical end-to-end test flow
+### Reviews — `/api/reviews`
+`PUT /:id`, `DELETE /:id` — owner or Admin.
 
-1. Start the backend (`npm run dev` in `backend/`).
-2. Start the admin dashboard, log in, add a category and a furniture
-   item with images + a `.glb` model.
-3. Run the mobile app on a real device, register a new user, verify
-   the email OTP (check your configured inbox), log in.
-4. Browse to the furniture item you added, tap **View in AR**, point
-   the camera at a floor, tap to place it, move/rotate/scale it, and
-   tap **Save Design**.
-5. Back in the app, check **Saved Designs** to see it listed; check
-   the admin dashboard's **Saved Designs** page to see it show up
-   there too.
+### Saved Designs — `/api/saved-designs`
+`GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `POST /:id/share`,
+and public `GET /shared/:shareToken`.
 
----
+### Notifications — `/api/notifications`
+`GET /`, `PUT /:id/read` — Private. `POST /` — Admin (broadcast or targeted).
 
-## 5. Deployment notes
+### AI — `/api/ai`
+`POST /recommendations` (`{ roomSizeSqm, wallColor, budget, style, roomType }`),
+`GET /match/:furnitureId`,
+`POST /interior-design` (multipart: `roomPhoto`) — analyzes a room photo and
+recommends style/furniture/appliances,
+`POST /visual-search` (multipart: `photo`) — analyzes a photo of a single
+product and finds visually/stylistically similar catalog items,
+`POST /chat` (`{ message }`) — conversational AI shopping assistant with
+rolling history, `GET /chat/history`, `DELETE /chat/history` — all Private.
+Every AI endpoint degrades gracefully to catalog filtering / a fallback
+message if `GEMINI_API_KEY` is not set.
 
-- **Backend:** deploy to Render/Railway/Fly.io/EC2 etc. See
-  `backend/README.md` → "Deployment Guide" for details (env vars,
-  PM2, reverse proxy, health checks).
-- **Admin dashboard:** `npm run build` in `admin-dashboard/` produces
-  a static `dist/` folder — deploy it to Netlify/Vercel/S3/any static
-  host, with `VITE_API_BASE_URL` pointing at your deployed backend.
-- **Mobile app:** build release binaries with `flutter build apk` /
-  `flutter build ios`, pointing `API_BASE_URL` at your deployed
-  backend via `--dart-define=API_BASE_URL=https://your-api.com/api`.
+### Admin — `/api/admin`
+`GET /stats`, `GET /users`, `PUT /users/:id/disable`, `GET /saved-designs` — Admin only.
 
----
+## Deployment Guide
 
-## 6. A note on scope
+1. **Provision MongoDB Atlas**: create a cluster, a database user, and
+   whitelist your server's IP (or `0.0.0.0/0` for platforms with dynamic IPs).
+2. **Set environment variables** on your host (Render, Railway, Fly.io, EC2,
+   etc.) matching `.env.example`. Never commit `.env`.
+3. **Install & build**: `npm ci --production`.
+4. **Run migrations/seed** (first deploy only): `npm run seed`.
+5. **Start**: `npm start` (or run behind PM2 / a process manager):
+   ```bash
+   npm i -g pm2
+   pm2 start server.js --name ar-furniture-api
+   ```
+6. **Reverse proxy**: put Nginx or your platform's load balancer in front,
+   terminate TLS there, and forward to the Node port.
+7. **CORS**: set `CLIENT_URL` to your deployed admin dashboard's origin
+   (comma-separate multiple origins).
+8. **Health checks**: point your platform's health check at `GET /health`.
 
-This project was generated incrementally across a conversation, module
-by module, so nothing was rushed or stubbed with placeholder code. That
-said, it hasn't been compiled/run in this environment (no network or
-Flutter SDK available here), so before shipping:
+## Security Notes
 
-- Run `npm install && npm test` in `backend/`.
-- Run `npm install && npm run build` in `admin-dashboard/`.
-- Run `flutter pub get && flutter analyze` in `mobile-app/` — the AR
-  plugin (`ar_flutter_plugin_flutterflow`) in particular is worth a
-  close look, since third-party AR plugin APIs shift between versions
-  and should be checked against whatever version `flutter pub get`
-  resolves.
+- Passwords hashed with bcrypt (cost factor 12).
+- JWT access tokens are short-lived; refresh tokens rotate access tokens.
+- `helmet`, `cors`, `express-rate-limit`, `express-mongo-sanitize`, and
+  `xss-clean` are applied globally; auth endpoints have a stricter limiter.
+- All admin routes require both a valid JWT and `role: 'admin'`.
+- Forgot-password responses are identical whether or not the email exists,
+  to prevent user enumeration.
