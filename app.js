@@ -41,7 +41,7 @@ const allowedOrigins = [
   'http://localhost:52997',
   'http://127.0.0.1:52997',
 
-  // Add other known local ports if required
+  // Other local development ports
   'http://localhost:3000',
   'http://127.0.0.1:3000',
 
@@ -74,9 +74,6 @@ const corsOptions = {
     /*
      * DEVELOPMENT:
      * Allow localhost and 127.0.0.1 on any port.
-     *
-     * This is useful because Flutter Web can start on
-     * a different port such as 52997, 50000, etc.
      */
     if (
       process.env.NODE_ENV !== 'production' &&
@@ -180,6 +177,20 @@ app.use(
 
 /*
 |--------------------------------------------------------------------------
+| Root Route
+|--------------------------------------------------------------------------
+*/
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'AR Furniture Studio API is running',
+    status: 'ok',
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
 | Health Check
 |--------------------------------------------------------------------------
 */
@@ -188,6 +199,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'AR Furniture Studio API is running',
+    status: 'ok',
     timestamp: new Date(),
   });
 });
